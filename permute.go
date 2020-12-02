@@ -19,10 +19,7 @@ func newFact(i int64, n int) (fact, bool) {
 }
 
 func (f fact) perm() perm {
-	p := make(perm, len(f)+1)
-	for i := range p {
-		p[i] = i
-	}
+	p := identityPerm(len(f) + 1)
 
 	e := len(f) - 1
 	for i := range f {
@@ -37,6 +34,14 @@ func (f fact) perm() perm {
 
 // perm is a permutation of the numbers 0..n-1
 type perm []int
+
+func identityPerm(n int) perm {
+	p := make(perm, n)
+	for i := range p {
+		p[i] = i
+	}
+	return p
+}
 
 func (p perm) apply(d Interface) {
 	for i, j := range p {
@@ -81,6 +86,14 @@ func (p perm) next(d Interface) bool {
 	return true
 }
 
+func (p perm) inverse() perm {
+	q := make(perm, len(p))
+	for i, j := range p {
+		q[j] = i
+	}
+	return q
+}
+
 type Interface interface {
 	Len() int
 	Swap(i, j int)
@@ -90,18 +103,15 @@ type Permuter struct {
 	data  Interface
 	p     perm
 	first bool
+	reset perm
 }
 
 func NewPermuter(data Interface) *Permuter {
-	p := make(perm, data.Len())
-	for i := range p {
-		p[i] = i
-	}
-
 	return &Permuter{
 		data:  data,
-		p:     p,
+		p:     identityPerm(data.Len()),
 		first: true,
+		reset: nil,
 	}
 }
 
@@ -121,7 +131,26 @@ func NewSlicePermuter(data interface{}) *Permuter {
 	return NewPermuter(slice{data})
 }
 
+// SetNext makes it so Permute yields the ith lexicographic permutation on its next call.
+func (p *Permuter) SetNext(i int64) bool {
+	f, ok := newFact(i, p.data.Len())
+	if !ok {
+		return false
+	}
+
+	p.reset = p.p.inverse()
+	p.p = f.perm()
+	p.first = true
+	return true
+}
+
+// Permute updates the slice to the next permutation, and returns whether there are more permutations remaining.
 func (p *Permuter) Permute() bool {
+	if p.reset != nil {
+		p.reset.apply(p.data)
+		p.reset = nil
+	}
+
 	if p.first {
 		p.first = false
 		p.p.apply(p.data)
@@ -132,9 +161,8 @@ func (p *Permuter) Permute() bool {
 		return true
 	}
 
-	// Reverse data so that it's back in its original order.
-	for l, r := 0, p.data.Len()-1; l < r; l, r = l+1, r-1 {
-		p.data.Swap(l, r)
-	}
+	// Set data back to its original order.
+	p.p.inverse().apply(p.data)
+	p.p = identityPerm(p.data.Len())
 	return false
 }

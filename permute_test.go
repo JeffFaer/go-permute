@@ -67,6 +67,12 @@ func TestPerm(t *testing.T) {
 	if g := strings.Join(s2, ""); g != "120" {
 		t.Errorf("got %s, want 120", g)
 	}
+
+	s2 = []string{"1", "2", "0"}
+	p.inverse().apply(slice{s2})
+	if g := strings.Join(s2, ""); g != "012" {
+		t.Errorf("got %s, want 012", g)
+	}
 }
 
 func TestPermuter(t *testing.T) {
@@ -135,6 +141,109 @@ func TestPermuter(t *testing.T) {
 			}
 			if d := cmp.Diff(origIn, tc.in); d != "" {
 				t.Errorf("Permuter did not return input to its original order -want +got:\n%s", d)
+			}
+		})
+	}
+}
+
+func TestPermuterSetNext(t *testing.T) {
+	for _, tc := range []struct {
+		in   []string
+		want []string
+
+		i []int
+		n []int
+	}{
+		//"123",
+		//"132",
+		//"213",
+		//"231",
+		//"312",
+		//"321",
+		{
+			in: []string{"1", "2", "3"},
+			want: []string{
+				"321",
+			},
+
+			i: []int{5},
+			n: []int{-1},
+		},
+		{
+			in: []string{"1", "2", "3"},
+			want: []string{
+				"123",
+				"132",
+			},
+
+			i: []int{0},
+			n: []int{2},
+		},
+		{
+			in: []string{"1", "2", "3"},
+			want: []string{
+				"231",
+				"312",
+				"321",
+			},
+
+			i: []int{3, 5},
+			n: []int{2, -1},
+		},
+		{
+			in: []string{"1", "2", "3"},
+			want: []string{
+				"312",
+				"213",
+				"231",
+			},
+
+			i: []int{4, 2},
+			n: []int{1, 2},
+		},
+		{
+			in: []string{"1", "2", "3"},
+			want: []string{
+				"321",
+				"123",
+				"132",
+			},
+
+			i: []int{5, 0},
+			n: []int{-1, 2},
+		},
+	} {
+		t.Run(fmt.Sprintf("len(in)=%d,i=%v,n=%v", len(tc.in), tc.i, tc.n), func(t *testing.T) {
+			origIn := append([]string(nil), tc.in...)
+
+			var got []string
+			p := NewSlicePermuter(tc.in)
+			for i := range tc.i {
+				beforeSet := append([]string(nil), tc.in...)
+				t.Logf("SetNext(%d)", tc.i[i])
+				if ok := p.SetNext(int64(tc.i[i])); !ok {
+					t.Fatalf("p.SetNext(%d) was not ok", tc.i[i])
+				}
+
+				if d := cmp.Diff(beforeSet, tc.in); d != "" {
+					t.Errorf("p.SetNext(%d) changed the order of the slice", tc.i[i])
+				}
+
+				t.Logf("p.p %v", p.p)
+				for j := 0; (tc.n[i] == -1 || j < tc.n[i]) && p.Permute(); j++ {
+					t.Logf("p.p %v", p.p)
+					got = append(got, strings.Join(tc.in, ""))
+				}
+
+				if tc.n[i] == -1 {
+					if d := cmp.Diff(origIn, tc.in); d != "" {
+						t.Errorf("Permuter did not return input to its original order on %dth iteration -want +got:\n%s", i, d)
+					}
+				}
+			}
+
+			if d := cmp.Diff(tc.want, got); d != "" {
+				t.Errorf("Permuter did not generate correct permutations -want +got:\n%s", d)
 			}
 		})
 	}
