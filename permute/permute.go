@@ -138,7 +138,9 @@ func (p *Permuter) SetNext(i int64) bool {
 		return false
 	}
 
-	p.reset = p.p.inverse()
+	if p.reset == nil {
+		p.reset = p.p.inverse()
+	}
 	p.p = f.perm()
 	p.first = true
 	return true

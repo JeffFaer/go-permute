@@ -154,12 +154,6 @@ func TestPermuterSetNext(t *testing.T) {
 		i []int
 		n []int
 	}{
-		//"123",
-		//"132",
-		//"213",
-		//"231",
-		//"312",
-		//"321",
 		{
 			in: []string{"1", "2", "3"},
 			want: []string{
@@ -212,6 +206,16 @@ func TestPermuterSetNext(t *testing.T) {
 			i: []int{5, 0},
 			n: []int{-1, 2},
 		},
+		{
+			in: []string{"1", "2", "3"},
+			want: []string{
+				"231",
+				"312",
+			},
+
+			i: []int{5, 3},
+			n: []int{0, 2},
+		},
 	} {
 		t.Run(fmt.Sprintf("len(in)=%d,i=%v,n=%v", len(tc.in), tc.i, tc.n), func(t *testing.T) {
 			origIn := append([]string(nil), tc.in...)
@@ -220,7 +224,6 @@ func TestPermuterSetNext(t *testing.T) {
 			p := NewSlicePermuter(tc.in)
 			for i := range tc.i {
 				beforeSet := append([]string(nil), tc.in...)
-				t.Logf("SetNext(%d)", tc.i[i])
 				if ok := p.SetNext(int64(tc.i[i])); !ok {
 					t.Fatalf("p.SetNext(%d) was not ok", tc.i[i])
 				}
@@ -229,9 +232,7 @@ func TestPermuterSetNext(t *testing.T) {
 					t.Errorf("p.SetNext(%d) changed the order of the slice", tc.i[i])
 				}
 
-				t.Logf("p.p %v", p.p)
 				for j := 0; (tc.n[i] == -1 || j < tc.n[i]) && p.Permute(); j++ {
-					t.Logf("p.p %v", p.p)
 					got = append(got, strings.Join(tc.in, ""))
 				}
 
